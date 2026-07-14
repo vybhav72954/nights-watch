@@ -1,0 +1,43 @@
+# Night's Watch — demo runtime (G5: pinned, so the demo machine gets the exact
+# environment the suite was verified on).
+#
+# Everything here is imported by src/ or app/. Nothing here is optional for the
+# demo. Dev/test/notebook tooling lives in requirements-dev.txt.
+#
+#   python -m venv .venv && .venv/Scripts/activate   (Windows)
+#   pip install -r requirements.txt
+#   streamlit run app/streamlit_app.py
+#
+# The app runs with NO API key and NO internet: with GROQ_API_KEY unset the
+# detector degrades to the deterministic rules floor (CLAUDE.md §16).
+
+# Core data / graph
+numpy==2.3.5
+pandas==2.3.3
+networkx==3.6.1
+
+# The report contract (src/schema)
+pydantic==2.13.4
+
+# Web demo
+streamlit==1.59.1
+altair==6.2.2            # the validation chart (command centre); also a streamlit dep
+pyvis==0.3.2             # the network embed, rendered offline to self-contained HTML
+
+# LLM detector (classification + entity extraction). Optional at RUN time — the
+# rules floor runs without a key — but the import must resolve, so it is pinned.
+groq==1.2.0
+python-dotenv==1.0.1     # B8: .env is loaded at import of src/detector/llm.py
+
+# Evidence pack
+reportlab==4.5.1         # PDF export (JSON/markdown work without it)
+matplotlib==3.10.0       # assets/pr_curve.png, assets/scale_benchmark.png
+
+# NOT dependencies of the demo, deliberately:
+#   torch / torch-geometric — only src/engine/gnn.py (RingSAGE) imports them, and
+#     RingSAGE is explicitly NOT in the demo path (CLAUDE.md §15 "still cut").
+#     They were pinned here and torch-geometric was never even installed on the
+#     machine the suite passes on — so a clean install from this file used to
+#     build an environment nobody had tested. See requirements-dev.txt.
+#   scipy / scikit-learn — zero import sites in src/ or app/. The evidence metrics
+#     are plain, auditable pair counts by design (src/evidence/README.md).

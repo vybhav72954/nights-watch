@@ -1,0 +1,46 @@
+# data & artifacts
+data/raw/
+data/synthetic/
+data/processed/
+*.parquet
+*.csv
+*.zip
+*.pt
+*.pkl
+
+# secrets
+.env
+*.key
+**/secrets.*
+
+# python
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# node (web demo)
+node_modules/
+app/frontend/dist/
+app/frontend/.next/
+.streamlit/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# third-party agent skills (installed via skills CLI, not part of the project)
+.claude/skills/
+CLAUDE.md
+docs/*.md
+
+# NOTE: CLAUDE.md and docs/ ARE tracked (internal team context).
+# If submitting to a public judging repo, add CLAUDE.md here before pushing.
+
+

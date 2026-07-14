@@ -1,0 +1,23 @@
+# Night's Watch — dev / test / research extras. NOT needed to run the demo.
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pytest -q                                  # 227 tests, offline, no API key
+#   NIGHTSWATCH_APP_LLM=1 pytest tests/test_app.py   # the app on the live-Groq path
+
+pytest==9.0.2            # the suite; requirements.txt omitted it entirely, so a
+                         # clean venv could not run the tests it claims are green
+
+# Browser pass (CLAUDE.md §16.2: AppTest asserts strings and cannot see a layout,
+# so screenshot-then-look is the required last step before a demo freeze). Uses the
+# system Edge — `channel="msedge"`, no browser download.
+playwright==1.61.0
+
+# Notebooks
+jupyter==1.1.1
+
+# RingSAGE (src/engine/gnn.py) — the vendored GNN. Kept installable because the
+# engine seam is part of the story, but it is NOT in the demo path and nothing in
+# app/ imports it. torch is a ~2.5 GB install; torch-geometric often needs its own
+# index. Install only if you actually intend to run the GNN.
+#   torch
+#   torch-geometric
