@@ -148,9 +148,9 @@ def describe_adversarial_case(reports: list[Report], hub_degree_cap: int = 8) ->
         f"(degree {degree} vs hub_degree_cap={hub_degree_cap}: "
         f"{'excluded as a hub' if degree > hub_degree_cap else 'NOT excluded'}). Layer 1 (hard "
         f"identifiers, guardrail applied): {'found' if layer1_caught else 'did NOT find'} a ring "
-        "linking them -- the device is excluded for the same reason a genuine popular hub is, "
+        "linking them: the device is excluded for the same reason a genuine popular hub is, "
         "which Layer 1 states as a limitation rather than silently missing. Layer 2: the shared "
         f"device {'was' if layer2_bridged else 'was NOT'} surfaced as the top cross-incident lead "
-        "bridging all victims -- reported as a lead, not asserted as proof."
+        "bridging all victims (reported as a lead, not asserted as proof)."
     )
     return GuardrailResult(name="adversarial_identifier_rotation", passed=passed, detail=detail)

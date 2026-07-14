@@ -118,7 +118,7 @@ class EvidencePack:
             "statute": "Bharatiya Sakshya Adhiniyam 2023, Section 63 (electronic record)",
             "predecessor": "Indian Evidence Act 1872, Section 65B (superseded)",
             "content_sha256": self.content_sha256,
-            "status": "PLACEHOLDER -- requires a signed certificate from the person "
+            "status": "PLACEHOLDER: requires a signed certificate from the person "
                        "in charge of the device/system, per Section 63, before use "
                        "in proceedings; not executed in this demo build",
         }

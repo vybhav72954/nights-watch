@@ -249,7 +249,7 @@ def _write_pr_curve_figure(curve: list[PairwiseScore], path: Path) -> None:
     ax.set_xlabel("hub degree cap (the demo threshold slider)")
     ax.set_ylabel("pairwise ring-recovery score")
     ax.set_ylim(-0.05, 1.05)
-    ax.set_title("Ring recovery vs hub-degree cap -- seeded answer-key network (seed 0)")
+    ax.set_title("Ring recovery vs hub-degree cap: seeded answer-key network (seed 0)")
     ax.legend()
     fig.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)

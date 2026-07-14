@@ -23,6 +23,11 @@ venv/
 dist/
 build/
 
+# pitch deck (generated output + its HTML source/images; rebuild via
+# assets/deck/deck.html -> render script -> assets/deck.pdf)
+assets/deck.pdf
+assets/deck/
+
 # node (web demo)
 node_modules/
 app/frontend/dist/
