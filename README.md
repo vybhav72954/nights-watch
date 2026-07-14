@@ -2,7 +2,7 @@
 
 *"The shield that guards the realms of men."*
 
-*ET Hackathon — "AI for Digital Public Safety: Defeating Counterfeiting, Fraud & Digital Arrest Scams."*
+*"AI for Digital Public Safety: Defeating Counterfeiting, Fraud & Digital Arrest Scams."*
 
 **Detect → Link → Prove.** A consent-first platform that turns individual citizen scam
 reports into coordinated-ring intelligence:
@@ -27,8 +27,9 @@ reports into coordinated-ring intelligence:
 
 ## Status
 
-Scaffolding + design. See `CLAUDE.md` for the master plan and `docs/` for detailed specs:
-`SOLUTION_DESIGN.md`, `REPORT_SCHEMA.md`, `DATASETS.md`, `DEMO_SCRIPT.md`.
+Pipeline, evidence layer, and web demo built and tested (full pytest suite green; the app
+runs offline with no API key). See `CLAUDE.md` for the master plan and `docs/` for detailed
+specs: `SOLUTION_DESIGN.md`, `REPORT_SCHEMA.md`, `DATASETS.md`, `DEMO_SCRIPT.md`.
 
 ## Scope
 
@@ -40,6 +41,7 @@ computer vision and any call-tapping / location-tracking (consent-first, text-in
 ```bash
 python -m venv .venv && .venv/Scripts/activate   # or reuse uv
 pip install -r requirements.txt
+streamlit run app/streamlit_app.py
 ```
 
 Built on the controlled fraud-injection + GraphSAGE ring engine

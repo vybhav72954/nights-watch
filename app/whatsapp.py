@@ -197,9 +197,9 @@ def highlight(text: str, spans: list[EntitySpan]) -> str:
         label = IDENT_LABELS.get(sp.kind, sp.kind)
         links = sp.kind in LINKING_KINDS
         title = (
-            f"{label} — extracted; becomes a node in the fraud network"
+            f"{label}: extracted; becomes a node in the fraud network"
             if links
-            else f"{label} — extracted as context; Layer 1 does not link on it"
+            else f"{label}: extracted as context; Layer 1 does not link on it"
         )
         out.append(
             f'<span class="{"ident" if links else "ident ctx"}" style="color:{color}" '
@@ -285,7 +285,7 @@ def legend() -> str:
     context = "".join(swatch(k) for k in ("url", "amount"))
     return (
         '<div class="wa-legend">'
-        f"<b>Becomes a node in the network</b> — this is what links rings: {links}"
-        f"<br><b>Extracted, but never a link</b> — context only: {context}"
+        f"<b>Becomes a node in the network</b> (this is what links rings): {links}"
+        f"<br><b>Extracted, but never a link</b> (context only): {context}"
         "</div>"
     )

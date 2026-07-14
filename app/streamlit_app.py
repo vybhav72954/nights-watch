@@ -43,6 +43,16 @@ with st.sidebar:
     if active_classifier_path() == "llm":
         st.caption("Classifier: **LLM** (Groq) with a deterministic rules fallback")
     else:
-        st.caption("Classifier: **rules floor** — offline, deterministic")
+        st.caption("Classifier: **rules floor** (offline, deterministic)")
+
+    # Sidebar code runs before page.run(), so clearing here renders this same
+    # run as a fresh session: the presenter can re-run the hero beat without
+    # restarting Streamlit. Seeded state is cached and untouched.
+    if st.button("Reset demo", icon=":material/restart_alt:"):
+        st.session_state.live_reports = []
+        st.session_state.chat_messages = []
+        st.session_state.last_join = None
+    if st.session_state.live_reports:
+        st.caption(f"{len(st.session_state.live_reports)} live report(s) this session")
 
 page.run()

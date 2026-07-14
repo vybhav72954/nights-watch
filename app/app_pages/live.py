@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import core
 import streamlit as st
+import ui
 import whatsapp
 from src.detector import detect, entity_spans, guidance
 from src.evidence import DEMO_HUB_DEGREE_CAP, build_kingpin_leads
@@ -43,7 +44,7 @@ CAP = DEMO_HUB_DEGREE_CAP
 HERO = (
     "URGENT: This is Inspector Sharma, CBI Cyber Crime Branch. Your Aadhaar is "
     "linked to a money laundering case and a non-bailable arrest warrant has "
-    "been issued in your name. You are under DIGITAL ARREST — do not disconnect "
+    "been issued in your name. You are under DIGITAL ARREST. Do not disconnect "
     "the video call, and do not tell anyone, this is a confidential "
     "investigation. To avoid jail custody you must transfer a verification fee "
     "of Rs 50,000 to mule00@okaxis within 2 hours. Call +919999900000 now."
@@ -55,6 +56,18 @@ SUGGESTIONS = {
 }
 
 whatsapp.inject_css()
+ui.inject_css()
+
+# The product in one strip, lit by where the demo actually is: a verdict lights
+# DETECT, a Layer 1 join lights LINK — and a joined ring's evidence pack is a
+# deterministic render away in the Command centre, so PROVE lights with it.
+_join = st.session_state.last_join
+_linked = bool(_join and _join.get("ring_id"))
+ui.pipeline(
+    detected=bool(st.session_state.chat_messages),
+    linked=_linked,
+    proved=_linked,
+)
 
 
 def _process(text: str) -> None:
@@ -86,14 +99,14 @@ def _process(text: str) -> None:
     ring_hit = None
     if ring and len(merged) > 1:
         ring_hit = (
-            f"⚠ These payees are already known — and they are the same network. "
+            f"⚠ These payees are already known, and they are the same network. "
             f"Your report merges {len(merged)} rings we were tracking separately "
             f"into one of {len(ring.incident_ids)} reported incidents."
         )
     elif ring:
         ring_hit = (
             f"⚠ This payee is already known. Your report links to ring "
-            f"{ring.ring_id} — {len(ring.incident_ids)} reported incidents."
+            f"{ring.ring_id}: {len(ring.incident_ids)} reported incidents."
         )
 
     st.session_state.chat_messages += [
@@ -142,7 +155,7 @@ with left:
 
 # ------------------------------------------------------------- the network
 with right:
-    st.subheader("Fraud network — live", anchor=False)
+    st.subheader("Live fraud network", anchor=False)
 
     live = st.session_state.live_reports
     reports, g, rings = core.current_state(CAP, live)
@@ -158,14 +171,14 @@ with right:
         linkers = core.linking_identifiers(g, ring, join["report_id"])
         if join.get("merged", 1) > 1:
             st.error(
-                f"**One report merged {join['merged']} known rings** — the identifiers in "
+                f"**One report merged {join['merged']} known rings.** The identifiers in "
                 f"that message are shared with more than one ring we were tracking "
                 f"separately. They are one network.",
                 icon=":material/warning:",
             )
         else:
             st.error(
-                f"**Linked to known ring {ring.ring_id}** — the payee in that message "
+                f"**Linked to known ring {ring.ring_id}.** The payee in that message "
                 f"is already in our intelligence base.",
                 icon=":material/warning:",
             )
@@ -187,17 +200,20 @@ with right:
                     sum(1 for _, d in g.nodes(data=True) if d["kind"] == "incident"))
         m[2].metric("Live this session", len(live))
         if join:
-            st.info("No prior report shares an identifier with this message — nothing to link. "
-                    "One report is not a ring.", icon=":material/info:")
+            st.info("No prior report shares an identifier with this message, so there is "
+                    "nothing to link. One report is not a ring.", icon=":material/info:")
 
     scores = rank_kingpins(g, rings)
     top = scores[0].node if scores else None
     focus = f"incident:{join['report_id']}" if join else None
+    # 360px, not more: the camera fits the joined ring to the frame whatever the
+    # height, and the kingpin banner below must stay above a 1000px fold with
+    # the pipeline strip now above (§16.6 — measured, not guessed).
     html, undrawn = core.graph_html(
         CAP, tuple(r.report_id for r in live), top, live,
-        focus_node=focus, height=440, show_hubs=False,
+        focus_node=focus, height=360, show_hubs=False,
     )
-    st.iframe(html, height=460)
+    st.iframe(html, height=380)
 
     # The kingpin lead goes directly under the graph and ABOVE the caption: it is
     # the payoff of this whole screen, and at 520px of graph plus a three-line
@@ -217,20 +233,42 @@ with right:
                  if named_here else
                  f"**And it doesn't stop at this ring.** `{lead.node}` ")
                 + f"is central across **{len(lead.bridged_ring_ids)} rings** "
-                f"({', '.join(sorted(lead.bridged_ring_ids))}) — different scams, one "
-                f"controller. Too many incidents touch it for Layer 1 to link on it (the "
-                f"same guardrail that stops a popular merchant becoming a ring), so it is "
-                f"a Layer 2 **lead, not proof**. The evidence pack is in the Command centre.",
+                f"({', '.join(sorted(lead.bridged_ring_ids))}): different scams, one "
+                f"controller. Too many incidents touch it for Layer 1 to link on it "
+                f"(popular ≠ fraud, the same guardrail that protects a busy merchant), "
+                f"so it is a Layer 2 **lead, not proof**.",
                 icon=":material/hub:",
             )
 
     # No red-star clause: the kingpin's degree (54) is above the cap, so it IS one
     # of the capped hubs and is not drawn on this page either.
     st.caption(
-        f"Ring identifiers are filled by ring and outlined by identifier type — the same "
+        f"Ring identifiers are filled by ring and outlined by identifier type, the same "
         f"colours as the highlights in the message. Green = your live report. "
         f"{undrawn:,} legit background reports not drawn. The capped hubs (popular ≠ "
         f"fraud) and the Layer 2 kingpin lead are drawn in the Command centre."
     )
     st.page_link("app_pages/command_centre.py", label="Open the Command centre",
                  icon=":material/hub:")
+
+    # Collapsed by default so it costs no fold space; the mechanics for the
+    # judge who asks. Qualitative on purpose — the measured numbers live in the
+    # Validation tab, read from the code-produced artifacts.
+    if ring:
+        with st.expander("What just happened, exactly?"):
+            st.markdown(
+                "- **Detect**: the classifier read the raw text and returned a "
+                "verdict with the red flags it fired on; extraction pulled the "
+                "identifiers highlighted in the bubble. The citizen gets guidance; "
+                "the graph gets a structured report. Consent-first: nothing was "
+                "tapped; the citizen pasted it.\n"
+                "- **Link**: every hard identifier (payee UPI, phone, account, "
+                "device) is a node; two reports naming the same one share an edge. "
+                "This report named a payee already in the intelligence base, so it "
+                "joined that ring **deterministically**; nothing learned, nothing "
+                "inferred. That is Layer 1, the court-facing claim.\n"
+                "- **Prove**: the ring's evidence pack (every shared identifier, "
+                "every incident, hash-stamped) is one click away in the Command "
+                "centre. The kingpin banner is Layer 2, a prioritisation lead, "
+                "never cited as proof."
+            )

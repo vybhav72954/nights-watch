@@ -17,13 +17,15 @@ from __future__ import annotations
 
 import core
 import streamlit as st
+import ui
 from src.evidence import DEMO_HUB_DEGREE_CAP, lead_time_headline
 
-st.subheader("Lead time — what the graph buys you", anchor=False)
+ui.inject_css()
+st.subheader("Lead time: what the graph buys you", anchor=False)
 st.caption(
     "The biggest ring in the intelligence base, replayed in the order its reports "
     "actually arrived. Detection is Layer 1 only: a second report sharing a hard "
-    "identifier. Seeded corpus — no live report enters this metric."
+    "identifier. Seeded corpus only; no live report enters this metric."
 )
 
 PRE, FLAG, AFTER, PENDING = "#5b6779", "#22c55e", "#ef4444", "#1e2836"
@@ -73,6 +75,7 @@ def _replay() -> dict:
 
     return {
         "members": members,
+        "ring_id": ring.ring_id if ring else None,
         "payee": payee.split(":", 1)[1] if payee else None,
         "flag_at": lt.detected_at_report if lt else None,
         "headline": lead_time_headline(replays),
@@ -109,13 +112,14 @@ dots = "".join(
     f'title="report {i}"></span>'
     for i in range(1, total + 1)
 )
-st.html(
-    f'<div style="padding:12px 6px 4px">{dots}</div>'
-    f'<div style="font-size:12.5px;color:#8696a0;padding-bottom:6px">'
+ui.card(
+    f"Ring {R['ring_id']}: its reports, in the order they arrived",
+    f'<div style="padding:8px 0 4px">{dots}</div>'
+    f'<div style="font-size:12.5px;color:#8696a0;padding-bottom:4px">'
     f'<span style="color:{PRE}">●</span> before detection &nbsp;'
     f'<span style="color:{FLAG}">●</span> ring becomes detectable &nbsp;'
-    f'<span style="color:{AFTER}">●</span> victims after the flag — preventable &nbsp;'
-    f'<span style="color:#334155">○</span> not yet reported</div>'
+    f'<span style="color:{AFTER}">●</span> victims after the flag (preventable) &nbsp;'
+    f'<span style="color:#334155">○</span> not yet reported</div>',
 )
 
 c = st.columns(4)
@@ -128,7 +132,7 @@ c[3].metric("Loss after the flag", core.rupees(loss_after))
 
 if detected:
     st.error(
-        f"Detectable at report **{flag_at}** — two citizens independently naming the same "
+        f"Detectable at report **{flag_at}**: two citizens independently naming the same "
         f"payee (`{R['payee']}`). Everyone after that point is a person the network could "
         f"have warned.",
         icon=":material/warning:",
@@ -136,11 +140,12 @@ if detected:
 else:
     st.info(
         "One report is not a ring. Layer 1 needs a second, independent incident sharing a "
-        "hard identifier before it will claim anything — that restraint is why the "
+        "hard identifier before it will claim anything; that restraint is why the "
         "false-positive rate is what it is.",
         icon=":material/info:",
     )
 
 if R["headline"]:
     st.success(f"**Measured, not asserted:** {R['headline']}", icon=":material/verified:")
-    st.caption("`src.evidence.replay_lead_time` — the sentence is produced by code (CLAUDE.md §17).")
+    st.caption("The sentence above is produced by `src.evidence.replay_lead_time`, "
+               "not typed on a slide.")

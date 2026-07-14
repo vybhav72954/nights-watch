@@ -49,12 +49,12 @@ def _narrative(score: KingpinScore) -> str:
     if len(score.ring_ids) <= 1:
         return (
             f"{score.kind} `{value}` ranks highly by centrality but touches at most one "
-            "detected ring -- not currently a cross-ring bridge."
+            "detected ring; not currently a cross-ring bridge."
         )
     rings = ", ".join(sorted(score.ring_ids))
     return (
         f"{score.kind} `{value}` is central across {len(score.ring_ids)} otherwise-separate "
-        f"rings ({rings}) — the kind of shared infrastructure a ring coordinator, not a "
+        f"rings ({rings}): the kind of shared infrastructure a ring coordinator, not a "
         "single scammer, would reuse."
     )
 

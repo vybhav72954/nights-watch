@@ -144,8 +144,8 @@ class EvidencePack:
 
     def to_markdown(self) -> str:
         lines = [
-            f"# Evidence Pack — Ring {self.ring_id}",
-            f"_Generated {self.generated_at.isoformat()} — Layer 1 (deterministic proof)_",
+            f"# Evidence Pack: Ring {self.ring_id}",
+            f"_Generated {self.generated_at.isoformat()} · Layer 1 (deterministic proof)_",
             "",
             self.narrative,
             "",
@@ -153,15 +153,15 @@ class EvidencePack:
         ]
         for inc in sorted(self.incidents, key=lambda i: i.timestamp):
             lines.append(
-                f"- `{inc.report_id}` — {inc.timestamp.isoformat()} — {inc.channel} — "
-                f"{inc.scam_type} — Rs.{inc.amount if inc.amount is not None else '?'}\n"
+                f"- `{inc.report_id}` · {inc.timestamp.isoformat()} · {inc.channel} · "
+                f"{inc.scam_type} · Rs.{inc.amount if inc.amount is not None else '?'}\n"
                 f"  > {inc.raw_text}\n"
                 f"  SHA-256: `{inc.raw_text_sha256}`"
             )
         lines.append("")
         lines.append(f"## Shared identifiers ({len(self.shared_identifiers)})")
         for sid in sorted(self.shared_identifiers, key=lambda s: -len(s.report_ids)):
-            lines.append(f"- **{sid.kind}** `{sid.value}` — used in {len(sid.report_ids)} report(s)")
+            lines.append(f"- **{sid.kind}** `{sid.value}`: used in {len(sid.report_ids)} report(s)")
         lines.append("")
         lines.append("## Methodology")
         for key, value in self.methodology.items():
@@ -201,9 +201,9 @@ class EvidencePack:
 
         styles = getSampleStyleSheet()
         story = [
-            Paragraph(f"Evidence Pack — Ring {self.ring_id}", styles["Title"]),
+            Paragraph(f"Evidence Pack: Ring {self.ring_id}", styles["Title"]),
             Paragraph(
-                f"Generated {self.generated_at.isoformat()} — Layer 1 (deterministic proof)",
+                f"Generated {self.generated_at.isoformat()} · Layer 1 (deterministic proof)",
                 styles["Normal"],
             ),
             Spacer(1, 12),
@@ -280,7 +280,7 @@ def _narrative(ring: Ring, incidents: list[IncidentSummary], shared: list[Shared
         f"Ring {ring.ring_id} comprises {len(incidents)} citizen reports{span}. "
         f"They are linked by shared hard identifiers, most notably: {id_desc}. "
         "This clustering is a deterministic connected-component computation over "
-        "shared identifiers (Layer 1) — not a statistical or learned inference — "
+        "shared identifiers (Layer 1), not a statistical or learned inference, "
         "and is presented as evidence, not a probabilistic lead."
     )
 

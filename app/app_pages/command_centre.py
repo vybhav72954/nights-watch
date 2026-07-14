@@ -11,6 +11,7 @@ import pandas as pd
 import streamlit as st
 
 import core
+import ui
 from src.evidence import (
     DEFAULT_CURVE_CAPS,
     DEMO_HUB_DEGREE_CAP,
@@ -25,6 +26,10 @@ from src.evidence import (
 from src.graph import build_graph, rank_kingpins
 
 st.title("Command centre")
+ui.inject_css()
+# The two-layer doctrine is §3's differentiator; it belongs above the tabs as a
+# fixture of this screen, not buried in one tab's caption.
+ui.layer_cards()
 
 
 def _cap_label(c: int | None) -> str:
@@ -32,7 +37,7 @@ def _cap_label(c: int | None) -> str:
 
 
 cap = st.select_slider(
-    "Hub degree cap — the live precision/recall threshold. Layer 1 ignores any "
+    "Hub degree cap: the live precision/recall threshold. Layer 1 ignores any "
     "identifier touched by more incidents than this (popular ≠ fraud).",
     options=DEFAULT_CURVE_CAPS,
     value=DEMO_HUB_DEGREE_CAP,
@@ -86,12 +91,12 @@ with tab_net:
     )
 
 with tab_king:
-    st.subheader("Layer 2 — prioritisation leads · not proof")
+    st.subheader("Layer 2: prioritisation leads · not proof")
     if not leads:
         st.info("No rings at this cap, so no kingpin leads to rank.")
     for i, lead in enumerate(leads, start=1):
         with st.container(border=True):
-            st.markdown(f"**#{i} · `{lead.node}`** — centrality score {lead.score:.3f}")
+            st.markdown(f"**#{i} · `{lead.node}`** · centrality score {lead.score:.3f}")
             st.markdown(
                 f"Bridges **{len(lead.bridged_ring_ids)}** ring(s) "
                 f"({', '.join(lead.bridged_ring_ids)}) · "
@@ -101,9 +106,9 @@ with tab_king:
             st.caption(lead.disclaimer)  # always rendered in full (hard rule §2.5)
 
 with tab_ev:
-    st.subheader("Layer 1 — the auditable evidence pack")
+    st.subheader("Layer 1: the auditable evidence pack")
     if not rings:
-        st.info("No rings at this cap — nothing to build a pack for.")
+        st.info("No rings at this cap, so nothing to build a pack for.")
     else:
         ring_id = st.selectbox("Ring", [r.ring_id for r in rings])
         ring = next(r for r in rings if r.ring_id == ring_id)
@@ -135,7 +140,7 @@ with tab_ev:
 with tab_val:
     st.subheader("Does it actually work? The answer-key numbers")
     st.caption(
-        "Everything below is computed on the seeded corpus only — live reports "
+        "Everything below is computed on the seeded corpus only; live reports "
         "join the graph, never the metric (they carry no ground truth)."
     )
 
@@ -209,24 +214,139 @@ with tab_val:
     st.altair_chart(lines + rule)
     st.caption(
         "Ring-recovery precision/recall vs the cap (dashed line = the live slider). "
-        "Caps 5–20: too strict — the cap excludes the bigger rings' own mule UPIs, so "
+        "Caps 5–20: too strict, because the cap excludes the bigger rings' own mule UPIs, so "
         "those rings are never recovered at all and recall collapses (precision stays "
         "1.0 only because the little that is still claimed is correct). 30–50: every "
         "ring recovered, nothing false. 60 re-admits the kingpin's bridging phone "
         "(degree 53) and fuses its three rings into one. 80 re-admits the common "
         "merchants. Uncapped, the legit hub fuses nearly everything. Both failure ends "
-        "are left visible on purpose — that's what shows the 1.0s in the middle "
+        "are left visible on purpose; that's what shows the 1.0s in the middle "
         "aren't rigged."
     )
 
     st.divider()
     gcol1, gcol2 = st.columns(2)
     with gcol1:
-        st.markdown("**Guardrail — legit high-degree hub**")
+        st.markdown("**Guardrail: legit high-degree hub**")
         (st.success if hub_ok.passed else st.error)(hub_ok.detail)
     with gcol2:
-        st.markdown("**Guardrail — adversarial identifier rotation**")
+        st.markdown("**Guardrail: adversarial identifier rotation**")
         (st.success if adv_ok.passed else st.error)(adv_ok.detail)
+
+    # ── the slide-8 numbers, in the app ──────────────────────────────────────
+    # Read from the code-produced artifacts in data/processed/, never typed in:
+    # a number hard-coded here would be an asserted one (§17), and data/ is
+    # gitignored, so on a machine that hasn't generated an artifact the page
+    # shows the command that produces it instead of a stale figure.
+    st.divider()
+    st.markdown("**Measured on real data: the false-positive numbers**")
+    uci = core.processed_artifact("uci_eval")
+    nus = core.processed_artifact("nus_eval")
+    val = core.processed_artifact("validation")
+
+    r1, r2, r3 = st.columns(3)
+    with r1:
+        if uci:
+            # no delta=: st.metric stamps an arrow on it, and an "↑" next to an
+            # FP rate reads as "rising" -- the rate lives in the caption instead
+            st.metric(
+                "Real ham flagged (UCI)",
+                f"{uci['ham_false_positives']} / {uci['n_ham']:,}",
+            )
+            st.caption(
+                f"A {uci['ham_false_positive_rate']:.2%} false-positive rate on the "
+                "UCI SMS Spam Collection (real human SMS, rules floor). Caveat, "
+                "stated out loud: this eval *found* two keyword-bug classes and "
+                "now guards their fixes, so it is a regression harness, not an "
+                "untouched held-out set. That is what the NUS number is for."
+            )
+        else:
+            st.caption(
+                "UCI eval not generated on this machine; run "
+                "`python -m src.detector.eval_uci` (needs the gitignored corpus, "
+                "docs/DATASETS.md §2)."
+            )
+    with r2:
+        if nus:
+            st.metric(
+                "Real SMS flagged (NUS, held out)",
+                f"{nus['false_positives']} / {nus['n_messages']:,}",
+            )
+            st.caption(
+                f"A {nus['false_positive_rate']:.2%} false-positive rate on the "
+                "NUS SMS Corpus: 55k+ real conversational SMS the keyword lists "
+                "have never seen in either direction. No code was changed in "
+                "response to this number; it is frozen as measured."
+            )
+        else:
+            st.caption(
+                "NUS eval not generated on this machine; run "
+                "`python -m src.detector.eval_nus` (downloads the corpus, "
+                "docs/DATASETS.md §2)."
+            )
+    with r3:
+        if val:
+            ms = val["multi_seed"]
+            st.metric(
+                "Kingpin ranked #1",
+                f"{ms['kingpin_top1_hits']} / {ms['n_seeds']} seeds",
+            )
+            st.caption(
+                f"Ring recovery precision "
+                f"{ms['precision_mean']:.2f}±{ms['precision_sd']:.2f}, recall "
+                f"{ms['recall_mean']:.2f}±{ms['recall_sd']:.2f} across "
+                f"{ms['n_seeds']} independently seeded networks at cap "
+                f"{ms['hub_degree_cap']}, scored against the planted answer key. "
+                "Planted rings are clean by design; the claim is that the method "
+                "recovers the answer key exactly, not that real-world data is "
+                "this clean."
+            )
+        else:
+            st.caption(
+                "Answer-key validation not generated on this machine; run "
+                "`python -m src.evidence.validate`."
+            )
+
+    scale = core.processed_artifact("scale_benchmark")
+    with st.expander("Does it scale? Pipeline latency vs network size"):
+        if scale:
+            runs = scale["runs"]
+            sdf = pd.DataFrame(
+                [
+                    {
+                        "reports": r["n_reports"],
+                        "seconds": (r["build_graph_seconds"]
+                                    + r["detect_rings_seconds"]
+                                    + r["rank_kingpins_seconds"]),
+                        "rings detected": r["n_rings_detected"],
+                    }
+                    for r in runs
+                ]
+            )
+            st.altair_chart(
+                alt.Chart(sdf)
+                .mark_line(point=True, strokeWidth=2.5, color="#38bdf8")
+                .encode(
+                    x=alt.X("reports:Q", title="reports in the graph",
+                            axis=alt.Axis(format="~s")),
+                    y=alt.Y("seconds:Q", title="seconds"),
+                    tooltip=["reports", alt.Tooltip("seconds", format=".2f"),
+                             "rings detected"],
+                )
+            )
+            big = sdf.iloc[-1]
+            st.caption(
+                f"Graph build + ring detection + kingpin ranking, end to end: "
+                f"{int(big['reports']):,} reports in {big['seconds']:.1f}s on a "
+                f"laptop CPU (`python -m src.evidence.scale_benchmark`; "
+                f"synthetic-corpus *generation* time excluded; that is data "
+                f"creation, not the pipeline)."
+            )
+        else:
+            st.caption(
+                "Scale benchmark not generated on this machine; run "
+                "`python -m src.evidence.scale_benchmark`."
+            )
 
     st.divider()
     if headline:

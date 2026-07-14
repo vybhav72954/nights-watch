@@ -273,7 +273,7 @@ def test_the_legend_separates_linking_identifiers_from_context(at_hero):
         assert label in links
     for label in ("link", "amount"):
         assert label in context
-        assert label not in links.split("this is what links rings:")[1]
+        assert label not in links.split("this is what links rings):")[1]
     assert 'class="wa-legend"' in _html(at_hero)  # and it is actually rendered
 
 
@@ -323,6 +323,47 @@ def test_the_decoy_is_not_flagged_and_links_to_nothing(at_decoy):
     assert any("One report is not a ring" in i.value for i in at_decoy.info)
 
 
+# ── the demo chrome: pipeline strip, doctrine cards, reset ───────────────────
+
+def test_the_pipeline_strip_tracks_the_demo_state(at_idle, at_decoy, at_hero):
+    """The Detect→Link→Prove strip lights stages as the demo reaches them, so
+    the one-product seam is stated by the page itself: idle lights nothing, the
+    decoy detects but links nothing (we don't cry wolf), the hero lights all
+    three. Order-sensitive: must run while the module fixtures are still on the
+    Live page (later tests switch_page them)."""
+    for at in (at_idle, at_decoy, at_hero):
+        assert "nw-pipe" in _html(at)
+    assert _html(at_idle).count("nw-stage on") == 0
+    assert _html(at_decoy).count("nw-stage on") == 1  # DETECT only
+    assert _html(at_hero).count("nw-stage on") == 3
+
+
+def test_reset_demo_clears_the_session_for_a_rerun():
+    """The sidebar reset lets the presenter re-run the hero beat without
+    restarting Streamlit — it must return the app to a genuinely idle state
+    (pills back, empty phone, no lit pipeline stages), not just clear the chat."""
+    at = _run(pill=HERO_PILL)
+    assert at.session_state.live_reports and at.session_state.last_join["ring_id"]
+
+    next(b for b in at.sidebar.button if "Reset" in b.label).click().run()
+    assert at.session_state.live_reports == []
+    assert at.session_state.chat_messages == []
+    assert at.session_state.last_join is None
+    blob = _html(at)
+    assert "Forward a suspicious message to check it" in blob  # the empty phone
+    assert blob.count("nw-stage on") == 0
+    assert len(at.get("button_group")) == 1  # the try-one pills are back
+
+
+def test_the_two_layer_doctrine_cards_are_on_the_command_centre():
+    at = _run().switch_page("app_pages/command_centre.py").run()
+    assert not at.exception
+    blob = _html(at)
+    assert "STRUCTURAL PROOF · DETERMINISTIC" in blob
+    assert "KINGPIN LEAD · AI, NOT PROOF" in blob
+    assert "never cited as evidence" in blob
+
+
 def test_an_unlinked_report_does_not_crash_the_command_centre(at_decoy):
     """`last_join` carries no before/after when nothing linked, and the Command
     centre subtracted them anyway -- KeyError. Reachable two ways on stage: the
@@ -337,6 +378,76 @@ def test_the_hero_still_claims_its_growth_on_the_command_centre():
     assert not at.exception
     assert len(at.tabs) == 4
     assert any(m.label == "Largest ring" and m.delta == "1" for m in at.metric)
+
+
+def test_the_slide_8_numbers_come_from_the_artifacts_not_the_page(at_idle):
+    """The Validation tab shows the real-data FP numbers (UCI, NUS), the 20-seed
+    robustness result, and the scale benchmark. They must be READ from the
+    code-produced artifacts in data/processed/ -- a number typed into the page
+    would be an asserted one (§17) -- so this test recomputes the expected
+    strings from the artifacts themselves and asserts the page agrees."""
+    import json
+
+    processed = _REPO_ROOT / "data" / "processed"
+    needed = ["uci_eval.json", "nus_eval.json", "validation.json"]
+    if not all((processed / n).exists() for n in needed):
+        pytest.skip("data/processed artifacts not generated on this machine")
+
+    at = at_idle.switch_page("app_pages/command_centre.py").run()
+    assert not at.exception
+    m = _metrics(at)
+
+    uci = json.loads((processed / "uci_eval.json").read_text(encoding="utf-8"))
+    assert m["Real ham flagged (UCI)"].value == (
+        f"{uci['ham_false_positives']} / {uci['n_ham']:,}"
+    )
+
+    nus = json.loads((processed / "nus_eval.json").read_text(encoding="utf-8"))
+    assert m["Real SMS flagged (NUS, held out)"].value == (
+        f"{nus['false_positives']} / {nus['n_messages']:,}"
+    )
+
+    ms = json.loads((processed / "validation.json").read_text(encoding="utf-8"))["multi_seed"]
+    assert m["Kingpin ranked #1"].value == f"{ms['kingpin_top1_hits']} / {ms['n_seeds']} seeds"
+
+    # the honest caveats ship WITH the numbers, not in a doc nobody opens
+    captions = "\n".join(c.value for c in at.caption)
+    assert "regression harness, not an untouched held-out set" in captions
+    assert "No code was changed in response to this number" in captions
+    assert "not that real-world data is this clean" in captions
+
+
+def test_missing_artifacts_degrade_to_the_regeneration_command(monkeypatch):
+    """data/ is gitignored: a fresh clone has NO processed artifacts. The tab
+    must then show the command that regenerates each number -- never crash, and
+    never show a stale or invented figure."""
+    import core as app_core
+
+    monkeypatch.setattr(app_core, "processed_artifact", lambda name: None)
+    at = _run().switch_page("app_pages/command_centre.py").run()
+    assert not at.exception
+
+    labels = set(_metrics(at))
+    assert "Real ham flagged (UCI)" not in labels  # no artifact, no number
+    captions = "\n".join(c.value for c in at.caption)
+    for cmd in ("src.detector.eval_uci", "src.detector.eval_nus",
+                "src.evidence.validate", "src.evidence.scale_benchmark"):
+        assert cmd in captions
+
+
+def test_the_artifact_loader_returns_none_instead_of_raising(tmp_path, monkeypatch):
+    import core as app_core
+
+    monkeypatch.setattr(app_core, "_REPO_ROOT", tmp_path)
+    assert app_core.processed_artifact("uci_eval") is None  # no file at all
+
+    processed = tmp_path / "data" / "processed"
+    processed.mkdir(parents=True)
+    (processed / "uci_eval.json").write_text("{not json", encoding="utf-8")
+    assert app_core.processed_artifact("uci_eval") is None  # malformed file
+
+    (processed / "uci_eval.json").write_text('{"n_ham": 1}', encoding="utf-8")
+    assert app_core.processed_artifact("uci_eval") == {"n_ham": 1}
 
 
 def test_the_kingpin_disclaimer_is_rendered_in_full(at_idle):

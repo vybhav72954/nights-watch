@@ -143,6 +143,23 @@ def rupees(amount: int) -> str:
     return f"₹{amount:,}"
 
 
+def processed_artifact(name: str) -> dict | None:
+    """A code-produced artifact from data/processed/ (uci_eval, nus_eval,
+    validation, scale_benchmark), or None if it hasn't been generated on this
+    machine -- data/ is gitignored, so a fresh clone has none of them.
+
+    The app reads these instead of hard-coding the numbers: §17's rule is that
+    every quantitative claim is produced by code in this repo, and a number
+    typed into the UI would be an asserted one. When the artifact is absent the
+    page shows the regeneration command, never a stale figure.
+    """
+    path = _REPO_ROOT / "data" / "processed" / f"{name}.json"
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 # graph node "kind" -> the identifier colour used in the WhatsApp bubble, so a
 # highlighted identifier and its node read as the same thing (whatsapp.py).
 # Keys are the node kinds `build_graph` actually emits: upi, phone, account
@@ -235,7 +252,7 @@ def graph_html(
                        else {"background": fill, "border": border,
                              "highlight": {"background": fill, "border": "#ffffff"}}),
                 title=f"{kind} · degree {g.degree(n)}{in_ring}"
-                      + (" · LAYER-2 KINGPIN LEAD — not proof" if _kingpin(n) else ""),
+                      + (" · LAYER-2 KINGPIN LEAD (not proof)" if _kingpin(n) else ""),
             )
 
     for u, v in working.subgraph(shown).edges():
@@ -252,7 +269,7 @@ def graph_html(
             color=KINGPIN_COLOR if _kingpin(n) else HUB_COLOR,
             title=f"{g.nodes[n]['kind']} · degree {g.degree(n)}"
                   " · excluded by cap (popular ≠ fraud)"
-                  + (" · LAYER-2 KINGPIN LEAD — not proof" if _kingpin(n) else ""),
+                  + (" · LAYER-2 KINGPIN LEAD (not proof)" if _kingpin(n) else ""),
         )
 
     net.set_options(json.dumps({
