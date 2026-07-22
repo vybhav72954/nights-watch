@@ -17,6 +17,7 @@ for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "app")):
 
 import streamlit as st
 
+import ui
 from src.detector import active_classifier_path  # importing runs load_dotenv() (B8)
 
 st.set_page_config(page_title="Night's Watch", page_icon="🛡️", layout="wide")
@@ -31,6 +32,8 @@ page = st.navigation(
                 icon=":material/sensors:", default=True),
         st.Page("app_pages/command_centre.py", title="Command centre",
                 icon=":material/hub:"),
+        st.Page("app_pages/counterfeit.py", title="Counterfeit",
+                icon=":material/payments:"),
         st.Page("app_pages/replay.py", title="Lead time",
                 icon=":material/schedule:"),
     ],
@@ -38,17 +41,17 @@ page = st.navigation(
 )
 
 with st.sidebar:
-    st.markdown("**Night's Watch**")
-    st.caption("The shield that guards the realms of men.")
-    if active_classifier_path() == "llm":
-        st.caption("Classifier: **LLM** (Groq) with a deterministic rules fallback")
-    else:
-        st.caption("Classifier: **rules floor** (offline, deterministic)")
+    ui.inject_css()
+    _llm = active_classifier_path() == "llm"
+    ui.sidebar_brand(
+        "LLM (Groq) · rules fallback" if _llm else "Rules floor · offline, deterministic",
+        live=_llm,
+    )
 
     # Sidebar code runs before page.run(), so clearing here renders this same
-    # run as a fresh session: the presenter can re-run the hero beat without
-    # restarting Streamlit. Seeded state is cached and untouched.
-    if st.button("Reset demo", icon=":material/restart_alt:"):
+    # run as a fresh session without restarting Streamlit. Seeded state is
+    # cached and untouched.
+    if st.button("Reset session", icon=":material/restart_alt:", width="stretch"):
         st.session_state.live_reports = []
         st.session_state.chat_messages = []
         st.session_state.last_join = None

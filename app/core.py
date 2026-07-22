@@ -23,8 +23,8 @@ from src.graph import Ring, build_graph, detect_rings, hub_nodes
 from src.schema import Report
 from whatsapp import IDENT_COLORS
 
-BG = "#0e1420"
-FG = "#e6edf3"
+BG = "#0b141a"  # WhatsApp ink, shared with the chat panel and the page (ui.py)
+FG = "#e9edef"
 EDGE_COLOR = "#31405c"
 INCIDENT_COLOR = "#5b6779"
 LIVE_COLOR = "#22c55e"

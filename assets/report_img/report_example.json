@@ -1,0 +1,28 @@
+{
+  "report_id": "ffc118a4-afa4-4070-8cc6-de44feb629d5",
+  "timestamp": "2026-06-03T09:53:52.131387+05:30",
+  "channel": "whatsapp",
+  "raw_text": "Yeh CBI se Officer Sharma bol raha hai. Aapke Aadhaar par illega ...",
+  "language": "en",
+  "verdict": {
+    "is_scam": true,
+    "confidence": 0.98,
+    "scam_type": "digital_arrest",
+    "red_flags": ["authority_impersonation", "threat", "urgency", "payment_demand"]
+  },
+  "entities": {
+    "payee_upi": ["mule00@okaxis"],
+    "phone": ["+919999900000"],
+    "account": [],
+    "ifsc": [],
+    "url": [],
+    "amount": 43081,
+    "device_hint": null
+  },
+  "extraction_confidence": 0.82,
+  "gt": {
+    "ring_id": "R0000",
+    "is_kingpin_incident": true,
+    "planted_typology": "ring"
+  }
+}

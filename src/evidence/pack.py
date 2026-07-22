@@ -161,7 +161,7 @@ class EvidencePack:
         lines.append("")
         lines.append(f"## Shared identifiers ({len(self.shared_identifiers)})")
         for sid in sorted(self.shared_identifiers, key=lambda s: -len(s.report_ids)):
-            lines.append(f"- **{sid.kind}** `{sid.value}`: used in {len(sid.report_ids)} report(s)")
+            lines.append(f"- **{sid.kind}** `{sid.value}`: used in {len(sid.report_ids)} incidents")
         lines.append("")
         lines.append("## Methodology")
         for key, value in self.methodology.items():
@@ -236,7 +236,7 @@ class EvidencePack:
             ))
         story.append(Spacer(1, 12))
         story.append(Paragraph(f"Shared identifiers ({len(self.shared_identifiers)})", styles["Heading2"]))
-        id_rows = [["Kind", "Value", "Used in # reports"]]
+        id_rows = [["Kind", "Value", "Used in # incidents"]]
         for sid in sorted(self.shared_identifiers, key=lambda s: -len(s.report_ids)):
             id_rows.append([sid.kind, sid.value, str(len(sid.report_ids))])
         story.append(_styled_table(id_rows))
@@ -268,16 +268,19 @@ def _styled_table(rows: list[list[str]]):
     return t
 
 
-def _narrative(ring: Ring, incidents: list[IncidentSummary], shared: list[SharedIdentifier]) -> str:
+def _narrative(
+    ring: Ring, incidents: list[IncidentSummary], shared: list[SharedIdentifier],
+    incident_noun: str = "citizen reports",
+) -> str:
     span = ""
     if incidents:
         lo = min(i.timestamp for i in incidents)
         hi = max(i.timestamp for i in incidents)
         span = f" filed between {lo.isoformat()} and {hi.isoformat()}"
     top = sorted(shared, key=lambda s: -len(s.report_ids))[:3]
-    id_desc = "; ".join(f"{s.kind} `{s.value}` ({len(s.report_ids)} reports)" for s in top)
+    id_desc = "; ".join(f"{s.kind} `{s.value}` ({len(s.report_ids)} incidents)" for s in top)
     return (
-        f"Ring {ring.ring_id} comprises {len(incidents)} citizen reports{span}. "
+        f"Ring {ring.ring_id} comprises {len(incidents)} {incident_noun}{span}. "
         f"They are linked by shared hard identifiers, most notably: {id_desc}. "
         "This clustering is a deterministic connected-component computation over "
         "shared identifiers (Layer 1), not a statistical or learned inference, "
@@ -287,6 +290,7 @@ def _narrative(ring: Ring, incidents: list[IncidentSummary], shared: list[Shared
 
 def build_evidence_pack(
     ring: Ring, g: nx.Graph, reports_by_id: dict[str, Report],
+    *, incident_noun: str = "citizen reports",
 ) -> EvidencePack:
     """The detection parameters stamped into the methodology block are read off
     the `Ring` itself, never from the caller: they must be the ones the
@@ -326,18 +330,18 @@ def build_evidence_pack(
 
     methodology = {
         "algorithm": "deterministic connected components over shared hard "
-                      "identifiers (Layer 1) -- no ML, no statistical inference",
+                      "identifiers (Layer 1): no ML, no statistical inference",
         "parameters": {"hub_degree_cap": ring.hub_degree_cap,
                        "min_incidents": ring.min_incidents},
         "code_version": _code_version(),
-        "regenerable": "byte-identical content_sha256 from the same report set "
-                        "and parameters -- see EvidencePack.content_sha256",
+        "regenerable": "byte-identical content_sha256 from the same input set "
+                        "and parameters (see EvidencePack.content_sha256)",
     }
     return EvidencePack(
         ring_id=ring.ring_id,
         generated_at=datetime.now(timezone.utc),
         incidents=tuple(incidents),
         shared_identifiers=tuple(shared),
-        narrative=_narrative(ring, incidents, shared),
+        narrative=_narrative(ring, incidents, shared, incident_noun),
         methodology=methodology,
     )

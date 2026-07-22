@@ -41,7 +41,7 @@ for _p in (str(_REPO_ROOT), str(_REPO_ROOT / "app")):
 # import silently puts the key back and the "rules floor" run is really the LLM.
 import src.detector as detector  # noqa: E402
 
-HERO_PILL = "⚖️ A digital-arrest scam (demo)"
+HERO_PILL = "⚖️ A digital-arrest scam"
 DECOY_PILL = "✅ A normal message"
 
 # A plausible pasted scam that names the popular merchant alongside the mule.
@@ -512,3 +512,45 @@ def test_the_replay_flags_the_ring_at_the_second_report(at_idle):
 
     at.slider[0].set_value(2).run()
     assert _metrics(at)["Ring detected?"].value == "Yes"
+
+
+# ── the counterfeit (FICN) page: the same Link/Prove spine, re-pointed ───────
+
+def test_the_counterfeit_page_recovers_the_ring_and_names_the_courier_kingpin(at_idle):
+    """The FICN re-point reuses the ENTIRE Link/Prove spine unchanged (CLAUDE.md
+    §3 row 1): reused-plate seizures cluster into a ring, the cross-print courier
+    account is capped out of Layer 1 and surfaces as the Layer 2 kingpin, and the
+    same evidence pack is emitted -- only its prose noun differs ('seizure
+    records', not 'citizen reports')."""
+    at = at_idle.switch_page("app_pages/counterfeit.py").run()
+    assert not at.exception
+
+    m = _metrics(at)
+    assert m["Circulation rings"].value == "5"
+    assert m["Largest ring"].value == "18"
+
+    md = "\n".join(x.value for x in at.markdown)
+    assert "account:KP" in md                        # the courier is the top lead
+    assert "Bridges **2** circulation ring" in md     # it bridges the two kingpin rings
+    assert "Pack integrity hash (SHA-256):" in md     # the same Layer 1 pack
+    assert "seizure records" in md                    # the pack, re-nouned for FICN
+
+    # honest scope is stated on screen, not faked
+    assert "out of scope" in _html(at).lower()
+    assert any("NOT legal proof" in c for c in (x.value for x in at.caption))
+
+
+def test_the_counterfeit_validation_tile_reads_from_the_artifact(at_idle):
+    """The 20-seed answer-key numbers are READ from the code-produced artifact
+    (data/processed/ficn_validation.json), never typed into the page (§17)."""
+    artifact = _REPO_ROOT / "data" / "processed" / "ficn_validation.json"
+    if not artifact.exists():
+        pytest.skip("ficn_validation.json not generated on this machine")
+
+    import json
+
+    ms = json.loads(artifact.read_text(encoding="utf-8"))["multi_seed"]
+    at = at_idle.switch_page("app_pages/counterfeit.py").run()
+    assert _metrics(at)["Courier ranked #1"].value == (
+        f"{ms['kingpin_top1_hits']} / {ms['n_seeds']} seeds"
+    )

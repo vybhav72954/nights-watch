@@ -21,11 +21,12 @@ import ui
 from src.evidence import DEMO_HUB_DEGREE_CAP, lead_time_headline
 
 ui.inject_css()
-st.subheader("Lead time: what the graph buys you", anchor=False)
-st.caption(
+ui.page_header(
+    "Counterfactual · lead time",
+    "What the graph buys you",
     "The biggest ring in the intelligence base, replayed in the order its reports "
     "actually arrived. Detection is Layer 1 only: a second report sharing a hard "
-    "identifier. Seeded corpus only; no live report enters this metric."
+    "identifier. Seeded corpus only; no live report enters this metric.",
 )
 
 PRE, FLAG, AFTER, PENDING = "#5b6779", "#22c55e", "#ef4444", "#1e2836"

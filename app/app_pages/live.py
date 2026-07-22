@@ -51,7 +51,7 @@ HERO = (
 )
 DECOY = "Hey, just reached home. I'll pay you back the 500 tomorrow, thanks!"
 SUGGESTIONS = {
-    "⚖️ A digital-arrest scam (demo)": HERO,
+    "⚖️ A digital-arrest scam": HERO,
     "✅ A normal message": DECOY,
 }
 

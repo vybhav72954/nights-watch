@@ -25,8 +25,13 @@ from src.evidence import (
 )
 from src.graph import build_graph, rank_kingpins
 
-st.title("Command centre")
 ui.inject_css()
+ui.page_header(
+    "Intelligence · Detect → Link → Prove",
+    "Command centre",
+    "The whole network at once: rings, kingpin leads, hash-stamped evidence packs, "
+    "and the answer-key validation behind every claim.",
+)
 # The two-layer doctrine is §3's differentiator; it belongs above the tabs as a
 # fixture of this screen, not buried in one tab's caption.
 ui.layer_cards()
@@ -89,6 +94,48 @@ with tab_net:
         "★ red = Layer-2 kingpin lead. "
         f"{n_hidden} background incidents not drawn (no ring membership)."
     )
+
+    # Ring portfolio: the same rings the graph draws, ranked -- so the shape of
+    # the intelligence base reads at a glance without counting dots. Bars are
+    # coloured by core.RING_PALETTE index, the exact fill each ring's nodes carry
+    # above, so a bar and its cluster are visibly the same ring. Every value is a
+    # core.ring_stats() read of the detected ring (§17: no number typed in).
+    if rings:
+        st.markdown("**Ring portfolio** · reported incidents (bar), reported loss (label)")
+        ring_order = [r.ring_id for r in rings]
+        pf = pd.DataFrame(
+            [
+                {
+                    "ring": r.ring_id,
+                    "incidents": (s := core.ring_stats(r, reports_by_id))["incidents"],
+                    "loss_str": core.rupees(s["reported_loss"]),
+                    "pretexts": ", ".join(t.replace("_", " ") for t in s["scam_types"])
+                    or "mixed",
+                }
+                for r in rings
+            ]
+        )
+        base = alt.Chart(pf).encode(y=alt.Y("ring:N", sort=ring_order, title=None))
+        bars = base.mark_bar(cornerRadiusEnd=4, height=18).encode(
+            x=alt.X("incidents:Q", title="reported incidents"),
+            color=alt.Color(
+                "ring:N", sort=ring_order, legend=None,
+                scale=alt.Scale(domain=ring_order,
+                                range=core.RING_PALETTE[: len(rings)]),
+            ),
+            tooltip=[
+                alt.Tooltip("ring:N", title="ring"),
+                alt.Tooltip("incidents:Q", title="incidents"),
+                alt.Tooltip("loss_str:N", title="reported loss"),
+                alt.Tooltip("pretexts:N", title="pretext(s)"),
+            ],
+        )
+        labels = base.mark_text(align="left", dx=6, color="#cbd5e1",
+                                fontSize=11, fontWeight=600).encode(
+            x=alt.X("incidents:Q"), text="loss_str:N",
+        )
+        st.altair_chart(ui.style_chart(bars + labels,
+                                       height=max(120, 32 * len(rings))))
 
 with tab_king:
     st.subheader("Layer 2: prioritisation leads · not proof")
@@ -211,7 +258,7 @@ with tab_val:
         .mark_rule(strokeDash=[4, 4], color="#e6edf3")
         .encode(x=alt.X("cap:N", sort=order))
     )
-    st.altair_chart(lines + rule)
+    st.altair_chart(ui.style_chart(lines + rule, height=300))
     st.caption(
         "Ring-recovery precision/recall vs the cap (dashed line = the live slider). "
         "Caps 5–20: too strict, because the cap excludes the bigger rings' own mule UPIs, so "
@@ -323,7 +370,7 @@ with tab_val:
                     for r in runs
                 ]
             )
-            st.altair_chart(
+            st.altair_chart(ui.style_chart(
                 alt.Chart(sdf)
                 .mark_line(point=True, strokeWidth=2.5, color="#38bdf8")
                 .encode(
@@ -332,8 +379,9 @@ with tab_val:
                     y=alt.Y("seconds:Q", title="seconds"),
                     tooltip=["reports", alt.Tooltip("seconds", format=".2f"),
                              "rings detected"],
-                )
-            )
+                ),
+                height=240,
+            ))
             big = sdf.iloc[-1]
             st.caption(
                 f"Graph build + ring detection + kingpin ranking, end to end: "
